@@ -348,6 +348,6 @@ input[type="time"] { color-scheme: dark; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
 /* ── Modal Transition ── */
-#recap-modal { transition: opacity 0.3s ease; }
-#recap-modal.hidden { opacity: 0; pointer-events: none; }
-#recap-modal:not(.hidden) { opacity: 1; pointer-events: auto; }
+#recap-modal, #qr-generator-modal { transition: opacity 0.3s ease; }
+#recap-modal.hidden, #qr-generator-modal.hidden { opacity: 0; pointer-events: none; }
+#recap-modal:not(.hidden), #qr-generator-modal:not(.hidden) { opacity: 1; pointer-events: auto; }

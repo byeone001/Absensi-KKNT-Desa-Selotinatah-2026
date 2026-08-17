@@ -6,26 +6,27 @@
 // ═══════════════════════════════════════════════
 //  ⚙ CONFIGURATION — GANTI DENGAN URL GAS KAMU
 // ═══════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz6QGYcJ7YJGdoAco-9XYC9jP0aU7loee8xRuB0Rj76a_WlqhotPE7viTX5CfeeXswCuA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwiLV2kJMxOsMEnqQ2cjSvz5Imk-42p_vKYGA1S8TJj-r5U4UpSFHF0KIwzY--uhhiwnw/exec';
 
 // ═══════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════
 let currentOperator = null;
-let html5QrCode     = null;
-let cameraRunning   = false;
-let isProcessing    = false;
+let html5QrCode = null;
+let cameraRunning = false;
+let isProcessing = false;
 let currentScanMode = 'camera';
-let notifTimeout    = null;
+let notifTimeout = null;
+let qrInstance = null;
 
 // Kredensial operator (hardcoded)
 const VALID_USERS = {
-    'kordes'  : 'kordesnatah',
+    'kordes': 'kordesnatah',
     'wakordes': 'wakordesnatah'
 };
 
 const DISPLAY_NAMES = {
-    'kordes'  : 'Kordes 👑',
+    'kordes': 'Kordes 👑',
     'wakordes': 'Wakordes 🌟'
 };
 
@@ -120,10 +121,10 @@ function hideNotification() {
 function doLogin() {
     const username = document.getElementById('login-username').value.trim().toLowerCase();
     const password = document.getElementById('login-password').value;
-    const errEl    = document.getElementById('login-error');
-    const errText  = document.getElementById('login-error-text');
-    const btnText  = document.getElementById('btn-login-text');
-    const btn      = document.getElementById('btn-login');
+    const errEl = document.getElementById('login-error');
+    const errText = document.getElementById('login-error-text');
+    const btnText = document.getElementById('btn-login-text');
+    const btn = document.getElementById('btn-login');
 
     errEl.classList.add('hidden');
 
@@ -354,20 +355,20 @@ async function onQrSuccess(decodedText) {
     document.getElementById('loading-overlay').classList.remove('hidden');
 
     const payload = {
-        action        : 'scan',
-        member_code   : decodedText.trim(),
-        activity_date : document.getElementById('activity-date').value,
-        activity_time : document.getElementById('activity-time').value,
-        activity_hari : document.getElementById('activity-hari').value,
-        activity_name : document.getElementById('activity-name').value.trim(),
-        operator      : currentOperator
+        action: 'scan',
+        member_code: decodedText.trim(),
+        activity_date: document.getElementById('activity-date').value,
+        activity_time: document.getElementById('activity-time').value,
+        activity_hari: document.getElementById('activity-hari').value,
+        activity_name: document.getElementById('activity-name').value.trim(),
+        operator: currentOperator
     };
 
     try {
-        const res  = await fetch(SCRIPT_URL, {
-            method : 'POST',
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
-            body   : JSON.stringify(payload)
+            body: JSON.stringify(payload)
         });
         const data = await res.json();
 
@@ -417,12 +418,12 @@ async function doEndSession() {
 
     try {
         const res = await fetch(SCRIPT_URL, {
-            method : 'POST',
+            method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
-            body   : JSON.stringify({
-                action        : 'get_recap',
-                activity_date : actDate,
-                activity_name : actName
+            body: JSON.stringify({
+                action: 'get_recap',
+                activity_date: actDate,
+                activity_name: actName
             })
         });
         const data = await res.json();
@@ -557,18 +558,18 @@ async function copyRekapText() {
     const actDate = document.getElementById('modal-activity-date').textContent;
 
     // Ambil nama dari DOM
-    const hadirRows  = [...document.querySelectorAll('#modal-body-content .bg-emerald-500\\/20')]
+    const hadirRows = [...document.querySelectorAll('#modal-body-content .bg-emerald-500\\/20')]
         .map(el => el.parentElement.querySelector('.member-name').textContent.trim());
-        
-    const belumRows  = [...document.querySelectorAll('#modal-body-content .bg-red-500\\/20.w-8')]
+
+    const belumRows = [...document.querySelectorAll('#modal-body-content .bg-red-500\\/20.w-8')]
         .map(el => el.parentElement.querySelector('.member-name').textContent.trim());
 
     let teks = `📋 REKAP PRESENSI KKN-T SELOTINATAH\n`;
-    teks    += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-    teks    += `🎯 Kegiatan : ${actName}\n`;
-    teks    += `📅 Tanggal  : ${actDate}\n`;
-    teks    += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-    teks    += `✅ HADIR (${hadirRows.length})\n`;
+    teks += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    teks += `🎯 Kegiatan : ${actName}\n`;
+    teks += `📅 Tanggal  : ${actDate}\n`;
+    teks += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    teks += `✅ HADIR (${hadirRows.length})\n`;
     hadirRows.forEach((n, i) => { teks += `${i + 1}. ${n}\n`; });
 
     if (belumRows.length > 0) {
@@ -607,8 +608,124 @@ function showCopyFeedback(msg) {
 }
 
 // Tutup modal dengan klik overlay (di luar sheet)
-document.getElementById('recap-modal').addEventListener('click', function(e) {
+document.getElementById('recap-modal').addEventListener('click', function (e) {
     if (e.target === this) closeRecapModal(true);
+});
+
+// ═══════════════════════════════════════════════
+//  QR GENERATOR
+// ═══════════════════════════════════════════════
+
+let qrMembersCache = [];
+
+async function openQrGenerator() {
+    document.getElementById('qr-generator-modal').classList.remove('hidden');
+    document.getElementById('qr-result-area').classList.add('hidden');
+    const selectEl = document.getElementById('qr-gen-id');
+    const nameEl = document.getElementById('qr-gen-name');
+    const loadingEl = document.getElementById('qr-loading');
+
+    // Reset fields
+    nameEl.value = '';
+
+    // Fetch members if not cached
+    if (qrMembersCache.length === 0) {
+        loadingEl.classList.remove('hidden');
+        selectEl.innerHTML = '<option value="" disabled selected>-- Memuat Data --</option>';
+
+        try {
+            const res = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'get_members' })
+            });
+            const data = await res.json();
+
+            if (data.status === 200 && data.members) {
+                qrMembersCache = data.members;
+            } else {
+                throw new Error(data.message || 'Gagal mengambil data.');
+            }
+        } catch (err) {
+            console.error('Error fetching members:', err);
+            selectEl.innerHTML = '<option value="" disabled selected>-- Gagal memuat data --</option>';
+            loadingEl.classList.add('hidden');
+            return;
+        }
+        loadingEl.classList.add('hidden');
+    }
+
+    // Populate dropdown
+    selectEl.innerHTML = '<option value="" disabled selected>-- Pilih Anggota --</option>';
+    qrMembersCache.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = `${m.id} — ${m.nama}`;
+        opt.dataset.nama = m.nama;
+        selectEl.appendChild(opt);
+    });
+}
+
+function updateQrNameField() {
+    const selectEl = document.getElementById('qr-gen-id');
+    const nameEl = document.getElementById('qr-gen-name');
+    const resultArea = document.getElementById('qr-result-area');
+    const selectedOpt = selectEl.options[selectEl.selectedIndex];
+    
+    if (selectedOpt && selectedOpt.dataset.nama) {
+        nameEl.value = selectedOpt.dataset.nama;
+        generateQr(); // Otomatis buat QR
+    } else {
+        nameEl.value = '';
+        resultArea.classList.add('hidden');
+    }
+}
+
+function closeQrGenerator() {
+    document.getElementById('qr-generator-modal').classList.add('hidden');
+}
+
+function generateQr() {
+    const idVal = document.getElementById('qr-gen-id').value.trim();
+    if (!idVal) {
+        alert('ID Anggota tidak boleh kosong!');
+        return;
+    }
+
+    // Inisialisasi QRious jika belum ada
+    if (!qrInstance) {
+        qrInstance = new QRious({
+            element: document.getElementById('qr-canvas'),
+            size: 250,
+            background: 'white',
+            foreground: 'black',
+            level: 'H' // High error correction
+        });
+    }
+
+    qrInstance.value = idVal;
+    document.getElementById('qr-result-area').classList.remove('hidden');
+}
+
+function downloadQr() {
+    const canvas = document.getElementById('qr-canvas');
+    const idVal = document.getElementById('qr-gen-id').value.trim() || 'QR';
+    const nameVal = document.getElementById('qr-gen-name').value.trim();
+
+    // Format nama file: QR_ID_NAMA.png
+    let filename = `QR_${idVal}`;
+    if (nameVal) filename += `_${nameVal.replace(/\s+/g, '_')}`;
+    filename += '.png';
+
+    // Download
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+document.getElementById('qr-generator-modal').addEventListener('click', function (e) {
+    if (e.target === this) closeQrGenerator();
 });
 
 // ═══════════════════════════════════════════════

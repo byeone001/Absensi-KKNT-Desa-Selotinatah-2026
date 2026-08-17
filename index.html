@@ -21,6 +21,9 @@
     <!-- html5-qrcode Library -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
+    <!-- QRious Library (Untuk Generate QR Code) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
     <!-- PWA Setup -->
     <meta name="theme-color" content="#4338ca">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -100,10 +103,17 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <div class="badge hidden sm:flex">
+                <button class="btn-secondary hidden sm:flex items-center gap-1.5" onclick="openQrGenerator()" style="padding: 0.45rem 0.75rem;">
+                    <span>🖨️</span> Buat QR
+                </button>
+                <div class="badge hidden md:flex">
                     <span class="dot-pulse"></span>
                     <span id="header-operator-name">Operator</span>
                 </div>
+                <!-- Tombol Buat QR untuk mobile -->
+                <button class="btn-secondary sm:hidden flex items-center justify-center p-2 rounded-lg" onclick="openQrGenerator()" title="Buat QR">
+                    🖨️
+                </button>
                 <button class="btn-danger" onclick="doLogout()">🚪 Logout</button>
             </div>
         </div>
@@ -264,6 +274,53 @@
             <button id="btn-copy-recap" class="btn-primary w-full flex justify-center items-center gap-2 text-sm" onclick="copyRekapText()">
                 <span>📋</span> Salin Rekap
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- QR GENERATOR MODAL OVERLAY -->
+<div id="qr-generator-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all">
+    <div class="glass-card w-full max-w-sm flex flex-col bg-[#161625]">
+        
+        <!-- Modal Header -->
+        <div class="p-5 border-b border-white/10 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <span>🖨️</span> Buat QR Anggota
+            </h3>
+            <button onclick="closeQrGenerator()" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
+                ✕
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-5 space-y-4 relative">
+            
+            <!-- Loading Overlay within modal -->
+            <div id="qr-loading" class="absolute inset-0 bg-[#161625]/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-b-[1.5rem] hidden">
+                <div class="spinner mb-2" style="border-top-color:#6366f1;"></div>
+                <p class="text-sm font-medium text-[#94a3b8]">Memuat data anggota...</p>
+            </div>
+
+            <div>
+                <label class="form-label" for="qr-gen-id">Pilih Anggota *</label>
+                <select id="qr-gen-id" class="form-input custom-scrollbar" onchange="updateQrNameField()">
+                    <option value="" disabled selected>-- Memuat Data --</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label" for="qr-gen-name">Nama Anggota (Otomatis)</label>
+                <input id="qr-gen-name" type="text" class="form-input bg-white/5 opacity-70 cursor-not-allowed" placeholder="Nama akan terisi otomatis" readonly>
+            </div>
+            
+            <!-- Result Area -->
+            <div id="qr-result-area" class="hidden mt-2 pt-4 border-t border-white/10 flex flex-col items-center">
+                <div class="bg-white p-3 rounded-xl mb-3 shadow-lg">
+                    <canvas id="qr-canvas"></canvas>
+                </div>
+                <button class="btn-primary w-full flex justify-center items-center gap-2 text-sm" onclick="downloadQr()">
+                    <span>💾</span> Download Gambar QR
+                </button>
+            </div>
         </div>
     </div>
 </div>
