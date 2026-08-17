@@ -7,7 +7,7 @@
 //  ⚙ CONFIGURATION — GANTI DENGAN URL GAS KAMU
 // ═══════════════════════════════════════════════
 //const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2dJAUUhQj4YZOsB0qi2L_GDNw6oUyFGL0Y9Ty8-7jX8zlsa7Fba8lV5OrCB8X8uqB/exec';
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2dJAUUhQj4YZOsB0qi2L_GDNw6oUyFGL0Y9Ty8-7jX8zlsa7Fba8lV5OrCB8X8uqB/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwK0-nJqbt1AbeNmk3iVOZqJ-qQBG3r8bke6RIFICsGRYBM5JXXRnre4zF5qo57O1k9/exec';
 
 // ═══════════════════════════════════════════════
 //  STATE
@@ -832,30 +832,30 @@ function openMenu(menuId) {
     const displayDate = new Date(actDate + 'T12:00:00').toLocaleDateString('id-ID', {
         day: 'numeric', month: 'long', year: 'numeric'
     });
-    
+
     const sessionHtml = '<div class="flex flex-wrap gap-x-4 gap-y-1">' +
         '<span>📅 <strong style="color:#f1f5f9;">' + actHari + ', ' + displayDate + '</strong></span>' +
         '<span>🕐 <strong style="color:#f1f5f9;">' + actTime + ' WIB</strong></span>' +
         '<span>🎯 <strong style="color:#f1f5f9;">' + escHtml(actName) + '</strong></span>' +
         '<span>👤 <strong style="color:#f1f5f9;">' + currentOperator + '</strong></span>' +
-      '</div>';
-      
+        '</div>';
+
     const sessInfo = document.getElementById('session-info');
-    if(sessInfo) sessInfo.innerHTML = sessionHtml;
-    
+    if (sessInfo) sessInfo.innerHTML = sessionHtml;
+
     const manSessInfo = document.getElementById('manual-session-info');
-    if(manSessInfo) manSessInfo.innerHTML = sessionHtml;
+    if (manSessInfo) manSessInfo.innerHTML = sessionHtml;
 
     // Hide all panels
     document.getElementById('view-dashboard').classList.add('hidden');
     document.getElementById('panel-scanner').classList.add('hidden');
     document.getElementById('panel-manual').classList.add('hidden');
     document.getElementById('panel-qrgen').classList.add('hidden');
-    
+
     // Update nav items
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
     const navItem = document.getElementById('nav-' + menuId);
-    if(navItem) navItem.classList.add('active');
+    if (navItem) navItem.classList.add('active');
 
     if (menuId === 'home') {
         document.getElementById('view-dashboard').classList.remove('hidden');
@@ -892,7 +892,7 @@ async function openQrGeneratorView() {
     const loadingEl = document.getElementById('qr-loading');
 
     nameEl.value = '';
-    
+
     if (cachedMembers.length === 0) {
         loadingEl.classList.remove('hidden');
         await fetchMembers();
@@ -927,13 +927,13 @@ async function fetchMembers() {
             renderDashboardRecap();
         } else {
             console.error('API Error:', data);
-            if(listEl) listEl.innerHTML = '<p class="text-xs text-center py-4 text-red-400">Gagal memuat: ' + (data.message || 'Error Server') + '</p>';
-            if(statsEl) statsEl.innerHTML = '<div class="badge notif-error">Gagal</div>';
+            if (listEl) listEl.innerHTML = '<p class="text-xs text-center py-4 text-red-400">Gagal memuat: ' + (data.message || 'Error Server') + '</p>';
+            if (statsEl) statsEl.innerHTML = '<div class="badge notif-error">Gagal</div>';
         }
     } catch (err) {
         console.error('Error fetching members:', err);
-        if(listEl) listEl.innerHTML = '<p class="text-xs text-center py-4 text-red-400">Gagal terhubung ke server. Periksa koneksi atau URL Apps Script.</p>';
-        if(statsEl) statsEl.innerHTML = '<div class="badge notif-error">Offline</div>';
+        if (listEl) listEl.innerHTML = '<p class="text-xs text-center py-4 text-red-400">Gagal terhubung ke server. Periksa koneksi atau URL Apps Script.</p>';
+        if (statsEl) statsEl.innerHTML = '<div class="badge notif-error">Offline</div>';
     }
 }
 
@@ -941,11 +941,11 @@ async function fetchMembers() {
 function renderDashboardRecap() {
     const listEl = document.getElementById('dash-member-list');
     const statsEl = document.getElementById('dash-recap-stats');
-    
-    if(!listEl || !statsEl) return;
+
+    if (!listEl || !statsEl) return;
 
     statsEl.innerHTML = '<div class="badge stat-total">🎯 ' + cachedMembers.length + ' Total</div>';
-    
+
     if (cachedMembers.length === 0) {
         listEl.innerHTML = '<p class="text-xs text-center py-4" style="color:var(--text-secondary);">Tidak ada data anggota</p>';
         return;
@@ -956,11 +956,11 @@ function renderDashboardRecap() {
         html += '<div class="flex items-center gap-3 bg-white/5 p-2 rounded-xl">' +
             '<div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">' + escHtml(getInitials(m.nama)) + '</div>' +
             '<div class="flex-1 min-w-0">' +
-              '<div class="text-sm font-semibold text-white truncate">' + escHtml(m.nama) + '</div>' +
-              '<div class="text-[0.65rem] text-gray-400 truncate">' + escHtml(m.divisi || '') + '</div>' +
+            '<div class="text-sm font-semibold text-white truncate">' + escHtml(m.nama) + '</div>' +
+            '<div class="text-[0.65rem] text-gray-400 truncate">' + escHtml(m.divisi || '') + '</div>' +
             '</div>' +
             '<div class="text-[0.65rem] text-indigo-400 font-medium whitespace-nowrap px-2">' + escHtml(m.id) + '</div>' +
-          '</div>';
+            '</div>';
     });
     listEl.innerHTML = html;
 }
@@ -977,25 +977,25 @@ function renderManualList() {
     cachedMembers.forEach(m => {
         html += '<div class="manual-member-row">' +
             '<div class="manual-header-row">' +
-                '<input type="checkbox" class="manual-checkbox" data-id="' + m.id + '">' +
-                '<div class="flex-1 min-w-0">' +
-                    '<div class="text-sm font-semibold text-white truncate">' + escHtml(m.nama) + '</div>' +
-                '</div>' +
+            '<input type="checkbox" class="manual-checkbox" data-id="' + m.id + '">' +
+            '<div class="flex-1 min-w-0">' +
+            '<div class="text-sm font-semibold text-white truncate">' + escHtml(m.nama) + '</div>' +
+            '</div>' +
             '</div>' +
             '<div class="manual-status-group">' +
-                '<input type="radio" name="status-' + m.id + '" id="status-hadir-' + m.id + '" value="Hadir" class="status-radio-input">' +
-                '<label for="status-hadir-' + m.id + '" class="status-radio-label status-hadir">Hadir</label>' +
-                
-                '<input type="radio" name="status-' + m.id + '" id="status-sakit-' + m.id + '" value="Sakit" class="status-radio-input">' +
-                '<label for="status-sakit-' + m.id + '" class="status-radio-label status-sakit">Sakit</label>' +
-                
-                '<input type="radio" name="status-' + m.id + '" id="status-izin-' + m.id + '" value="Izin" class="status-radio-input">' +
-                '<label for="status-izin-' + m.id + '" class="status-radio-label status-izin">Izin</label>' +
-                
-                '<input type="radio" name="status-' + m.id + '" id="status-alpha-' + m.id + '" value="Alpha" class="status-radio-input" checked>' +
-                '<label for="status-alpha-' + m.id + '" class="status-radio-label status-alpha">Alpha</label>' +
+            '<input type="radio" name="status-' + m.id + '" id="status-hadir-' + m.id + '" value="Hadir" class="status-radio-input">' +
+            '<label for="status-hadir-' + m.id + '" class="status-radio-label status-hadir">Hadir</label>' +
+
+            '<input type="radio" name="status-' + m.id + '" id="status-sakit-' + m.id + '" value="Sakit" class="status-radio-input">' +
+            '<label for="status-sakit-' + m.id + '" class="status-radio-label status-sakit">Sakit</label>' +
+
+            '<input type="radio" name="status-' + m.id + '" id="status-izin-' + m.id + '" value="Izin" class="status-radio-input">' +
+            '<label for="status-izin-' + m.id + '" class="status-radio-label status-izin">Izin</label>' +
+
+            '<input type="radio" name="status-' + m.id + '" id="status-alpha-' + m.id + '" value="Alpha" class="status-radio-input" checked>' +
+            '<label for="status-alpha-' + m.id + '" class="status-radio-label status-alpha">Alpha</label>' +
             '</div>' +
-        '</div>';
+            '</div>';
     });
     listEl.innerHTML = html;
 }
@@ -1018,7 +1018,7 @@ async function submitManualAttendance() {
 
     const checkboxes = document.querySelectorAll('.manual-checkbox');
     const selectedMembers = [];
-    
+
     checkboxes.forEach(cb => {
         if (cb.checked) {
             const id = cb.dataset.id;
@@ -1038,7 +1038,7 @@ async function submitManualAttendance() {
 
     const payload = {
         action: 'manual_scan',
-        members: selectedMembers, 
+        members: selectedMembers,
         activity_date: actDate,
         activity_time: actTime,
         activity_hari: actHari,
