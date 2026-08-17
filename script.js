@@ -6,7 +6,7 @@
 // ═══════════════════════════════════════════════
 //  ⚙ CONFIGURATION — GANTI DENGAN URL GAS KAMU
 // ═══════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQD7_JJmg2OyABSvMhUTHO5qwclH9OX3xjWZPU2RLmDbbZqxOJuPApt9J-o4C0plUghQ/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNK0V81hyy-xSYx9veDRCAxWjZvU_VcbXn4aITqe9Hc69paiX5y4v5GTpQvONb1m-acQ/exec';
 
 // ═══════════════════════════════════════════════
 //  STATE
