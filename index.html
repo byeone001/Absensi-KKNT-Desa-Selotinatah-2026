@@ -4,189 +4,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presensi KKN-T Selotinatah</title>
-    <!-- Tailwind CSS (CDN for zero-cost and quick setup) -->
+    <title>Presensi KKN-T Selotinatah 2026</title>
+    <meta name="description" content="Sistem Presensi Digital KKN-T Desa Selotinatah 2026 menggunakan QR Code.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Custom styles to refine Tailwind and create premium look */
-        body {
-            background-color: #f3f4f6;
-            /* Tailwind gray-100 */
-            font-family: 'Inter', sans-serif;
-        }
 
-        #reader {
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-            border-radius: 1rem;
-            overflow: hidden;
-            border: none;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            background: white;
-        }
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="style.css">
 
-        #reader video {
-            border-radius: 1rem;
-            object-fit: cover;
-        }
-
-        /* Hide html5-qrcode extra borders */
-        #reader img {
-            display: none !important;
-        }
-
-        #reader__dashboard_section_csr span {
-            color: #ef4444 !important;
-            font-weight: 600;
-        }
-
-        #reader__dashboard_section_swaplink {
-            color: #3b82f6 !important;
-            text-decoration: underline;
-        }
-
-        button {
-            background-color: #3b82f6 !important;
-            color: white !important;
-            padding: 0.5rem 1rem !important;
-            border-radius: 0.5rem !important;
-            font-weight: 500 !important;
-            border: none !important;
-            transition: background-color 0.2s !important;
-        }
-
-        button:hover {
-            background-color: #2563eb !important;
-        }
-    </style>
+    <!-- html5-qrcode Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="flex items-center justify-center min-h-screen p-4">
 
-    <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6">
-        <div class="text-center space-y-2">
-            <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">Presensi KKN-T</h1>
-            <p class="text-sm font-medium text-gray-500">Scan QR Code untuk Kegiatan & Evaluasi</p>
-        </div>
+<div class="w-full max-w-md">
 
-        <!-- Notification Box -->
-        <div id="notification" class="hidden rounded-xl p-4 mb-4 text-sm font-semibold transition-all duration-300">
-        </div>
-
-        <!-- Scanner Viewport -->
-        <div class="relative">
-            <div id="reader"></div>
-            <!-- Loading Overlay -->
-            <div id="loading"
-                class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl z-10 transition-opacity duration-300">
-                <svg class="animate-spin h-10 w-10 text-blue-600 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                    </path>
-                </svg>
-                <p class="text-blue-700 font-bold animate-pulse">Memproses presensi...</p>
+    <!-- ══════════════════════════════ -->
+    <!--          LOGIN VIEW           -->
+    <!-- ══════════════════════════════ -->
+    <div id="view-login" class="view glass-card p-8 space-y-6">
+        <div class="text-center space-y-3">
+            <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl"
+                 style="background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 30px rgba(99,102,241,0.4);">
+                📋
+            </div>
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight text-white">Presensi KKN-T</h1>
+                <p class="text-sm font-medium mt-1" style="color:#94a3b8;">Desa Selotinatah · 2026</p>
+            </div>
+            <div class="badge mx-auto w-fit">
+                <span class="dot-pulse"></span>
+                Portal Operator
             </div>
         </div>
 
-        <div class="text-center">
-            <p class="text-xs text-gray-400 font-medium mt-4">&copy; 2026 Tim KKN-T Selotinatah</p>
+        <div class="space-y-4">
+            <div>
+                <label class="form-label" for="login-username">Username</label>
+                <input id="login-username" type="text" class="form-input"
+                       placeholder="Masukkan username..." autocomplete="username">
+            </div>
+            <div>
+                <label class="form-label" for="login-password">Password</label>
+                <div class="input-wrapper">
+                    <input id="login-password" type="password" class="form-input"
+                           placeholder="Masukkan password..." autocomplete="current-password"
+                           style="padding-right: 3rem;">
+                    <button class="toggle-pass" id="toggle-pass-btn" type="button"
+                            onclick="togglePassword()" title="Tampilkan password">👁</button>
+                </div>
+            </div>
         </div>
+
+        <div id="login-error" class="hidden notification-box notif-error">
+            <span style="flex-shrink:0;">⚠️</span>
+            <span id="login-error-text">Username atau password salah.</span>
+        </div>
+
+        <button id="btn-login" class="btn-primary py-3 text-base" onclick="doLogin()">
+            <span>🔐</span>
+            <span id="btn-login-text">Masuk sebagai Operator</span>
+        </button>
+
+        <p class="text-center text-xs" style="color:#64748b;">
+            Hanya operator KKN-T yang berwenang dapat mengakses sistem ini.
+        </p>
     </div>
 
-    <!-- html5-qrcode Library -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script>
-        // --- CONFIGURATION ---
-        // GANTI URL DI BAWAH INI DENGAN URL DEPLOYMENT GOOGLE APPS SCRIPT KAMU
-        const SCRIPT_URL = 'https://script.google.com/a/macros/mhs.unesa.ac.id/s/AKfycbzQD7_JJmg2OyABSvMhUTHO5qwclH9OX3xjWZPU2RLmDbbZqxOJuPApt9J-o4C0plUghQ/exec';
-        // ---------------------
+    <!-- ══════════════════════════════ -->
+    <!--         MAIN APP VIEW         -->
+    <!-- ══════════════════════════════ -->
+    <div id="view-app" class="hidden view space-y-4">
 
-        const html5QrCode = new Html5Qrcode("reader");
-        const notification = document.getElementById('notification');
-        const loadingOverlay = document.getElementById('loading');
-        let isProcessing = false;
+        <!-- HEADER -->
+        <div class="glass-card px-5 py-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                     style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">📋</div>
+                <div>
+                    <p class="font-bold text-sm text-white leading-tight">Presensi KKN-T</p>
+                    <p class="text-xs" style="color:#94a3b8;">Selotinatah 2026</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="badge hidden sm:flex">
+                    <span class="dot-pulse"></span>
+                    <span id="header-operator-name">Operator</span>
+                </div>
+                <button class="btn-danger" onclick="doLogout()">🚪 Logout</button>
+            </div>
+        </div>
 
-        function showNotification(message, type) {
-            notification.className = `rounded-xl p-4 mb-4 text-sm font-semibold transition-all duration-300 transform scale-100 shadow-sm`;
+        <!-- NOTIFICATION -->
+        <div id="notification" class="hidden"></div>
 
-            if (type === 'success') {
-                notification.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
-            } else if (type === 'warning') {
-                notification.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-200');
-            } else if (type === 'error') {
-                notification.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
-            }
+        <!-- SETUP PANEL -->
+        <div id="panel-setup" class="glass-card p-6 space-y-5">
+            <div class="flex items-center justify-between">
+                <h2 class="font-bold text-white text-sm flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold"
+                          style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">1</span>
+                    Setup Kegiatan
+                </h2>
+                <div class="flex gap-1.5">
+                    <div class="step-dot active"></div>
+                    <div class="step-dot" id="step2-dot"></div>
+                </div>
+            </div>
 
-            notification.innerText = message;
-            notification.classList.remove('hidden');
-        }
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="form-label" for="activity-date">Tanggal</label>
+                    <input id="activity-date" type="date" class="form-input" oninput="updateHari()">
+                </div>
+                <div>
+                    <label class="form-label" for="activity-time">Waktu (WIB)</label>
+                    <input id="activity-time" type="time" class="form-input">
+                </div>
+                <div>
+                    <label class="form-label" for="activity-hari">Hari</label>
+                    <input id="activity-hari" type="text" class="form-input" placeholder="Otomatis..."
+                           style="background:rgba(255,255,255,0.03); cursor:default;" readonly>
+                </div>
+                <div>
+                    <label class="form-label" for="activity-name">Nama Kegiatan *</label>
+                    <input id="activity-name" type="text" class="form-input"
+                           placeholder="Contoh: Kerja Bakti RT 01" maxlength="80">
+                </div>
+            </div>
 
-        function hideNotification() {
-            notification.classList.add('hidden');
-            notification.className = 'hidden';
-        }
+            <button class="btn-primary" onclick="goToScanner()">
+                <span>📷</span>
+                <span>Mulai Scan Presensi</span>
+            </button>
+        </div>
 
-        async function handleScan(decodedText) {
-            if (isProcessing) return; // Mencegah scan ganda saat masih loading
+        <!-- SCANNER PANEL -->
+        <div id="panel-scanner" class="hidden glass-card p-5 space-y-4">
 
-            isProcessing = true;
+            <!-- Session Info -->
+            <div class="glass-card-light p-4">
+                <div class="flex items-start justify-between gap-2">
+                    <h2 class="font-bold text-white text-sm flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold"
+                              style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">2</span>
+                        Scan QR Code
+                    </h2>
+                    <button class="btn-secondary" onclick="goBackSetup()">← Ubah</button>
+                </div>
+                <div id="session-info" class="text-xs mt-2.5 space-y-1" style="color:#94a3b8;"></div>
+            </div>
 
-            // 1. Bekukan scanner & tampilkan loading
-            html5QrCode.pause();
-            hideNotification();
-            loadingOverlay.classList.remove('hidden');
+            <!-- Scan Mode Tabs -->
+            <div class="glass-card-light p-1.5 flex gap-1.5">
+                <button class="scan-tab active" id="tab-camera" onclick="switchScanMode('camera')">
+                    <span>📸</span> Kamera Live
+                </button>
+                <button class="scan-tab" id="tab-gallery" onclick="switchScanMode('gallery')">
+                    <span>🖼️</span> Upload Gambar
+                </button>
+            </div>
 
-            try {
-                // 3. Kirim HTTP POST ke Google Apps Script
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        // Menggunakan text/plain untuk menghindari isu CORS preflight (OPTIONS) dari GAS
-                        'Content-Type': 'text/plain',
-                    },
-                    body: JSON.stringify({ member_code: decodedText })
-                });
+            <!-- Camera Panel -->
+            <div id="scan-camera-panel">
+                <div id="camera-reader"
+                     style="min-height:230px; background:rgba(0,0,0,0.4); border-radius:1rem; overflow:hidden;"></div>
+                <p class="text-center text-xs mt-2" style="color:#64748b;">
+                    Arahkan kamera ke QR Code anggota
+                </p>
+            </div>
 
-                const data = await response.json();
+            <!-- Gallery Panel -->
+            <div id="scan-gallery-panel" class="hidden">
+                <label for="gallery-input" class="upload-area">
+                    <div class="text-4xl mb-3">📂</div>
+                    <p class="font-semibold text-white text-sm">Pilih foto QR Code</p>
+                    <p class="text-xs mt-1" style="color:#94a3b8;">Tap untuk buka galeri atau file manager</p>
+                </label>
+                <input id="gallery-input" type="file" accept="image/*" class="hidden"
+                       onchange="handleGalleryImage(event)">
+                <div id="gallery-preview" class="hidden mt-3 text-center">
+                    <img id="gallery-img" class="rounded-xl mx-auto max-h-44 object-contain"
+                         style="border:1px solid rgba(255,255,255,0.1);" alt="Preview QR">
+                    <p id="gallery-status" class="text-xs mt-2" style="color:#94a3b8;">Memproses gambar...</p>
+                </div>
+            </div>
 
-                // 4. Tampilkan hasil di notifikasi
-                if (data.status === 200) {
-                    showNotification(data.message, 'success');
-                } else if (data.status === 429) {
-                    showNotification(data.message, 'warning');
-                } else {
-                    showNotification(data.message, 'error');
-                }
+            <!-- Loading -->
+            <div id="loading-overlay" class="hidden glass-card-light p-3.5 flex items-center gap-3">
+                <div class="spinner"></div>
+                <span class="text-sm font-medium" style="color:#94a3b8;">Memproses presensi ke server...</span>
+            </div>
+        </div>
 
-            } catch (error) {
-                console.error("Error sending data:", error);
-                showNotification("Gagal terhubung ke server. Periksa koneksi internet.", 'error');
-            } finally {
-                // Hilangkan efek loading
-                loadingOverlay.classList.add('hidden');
+        <p class="text-center text-xs pb-2" style="color:rgba(255,255,255,0.15);">
+            © 2026 Tim KKN-T Selotinatah · Powered by Google Apps Script
+        </p>
+    </div>
 
-                // 5. Tunggu 3 detik, bersihkan alert, dan lanjutkan scan kamera
-                setTimeout(() => {
-                    hideNotification();
-                    isProcessing = false;
-                    html5QrCode.resume();
-                }, 3000);
-            }
-        }
+</div>
 
-        // Auto-start webcam config
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+<!-- Hidden element untuk html5-qrcode gallery scan -->
+<div id="gallery-hidden-reader" style="display:none;width:1px;height:1px;"></div>
 
-        // Start scanner menggunakan kamera belakang (environment)
-        html5QrCode.start({ facingMode: "environment" }, config, handleScan)
-            .catch(err => {
-                console.error("Camera startup error:", err);
-                showNotification("Gagal mengakses kamera. Pastikan izin kamera diberikan pada browser.", 'error');
-            });
-    </script>
+<!-- Custom JavaScript -->
+<script src="script.js"></script>
+
 </body>
-
 </html>
