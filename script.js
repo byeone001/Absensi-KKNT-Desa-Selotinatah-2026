@@ -6,7 +6,8 @@
 // ═══════════════════════════════════════════════
 //  ⚙ CONFIGURATION — GANTI DENGAN URL GAS KAMU
 // ═══════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwiLV2kJMxOsMEnqQ2cjSvz5Imk-42p_vKYGA1S8TJj-r5U4UpSFHF0KIwzY--uhhiwnw/exec';
+//const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2dJAUUhQj4YZOsB0qi2L_GDNw6oUyFGL0Y9Ty8-7jX8zlsa7Fba8lV5OrCB8X8uqB/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2dJAUUhQj4YZOsB0qi2L_GDNw6oUyFGL0Y9Ty8-7jX8zlsa7Fba8lV5OrCB8X8uqB/exec';
 
 // ═══════════════════════════════════════════════
 //  STATE
@@ -188,6 +189,7 @@ function showApp() {
     document.getElementById('activity-time').value = getWIBTimeStr();
     updateHari();
     setTimeout(() => document.getElementById('activity-name').focus(), 100);
+    fetchMembers();
 }
 
 // ═══════════════════════════════════════════════
@@ -671,7 +673,7 @@ function updateQrNameField() {
     const nameEl = document.getElementById('qr-gen-name');
     const resultArea = document.getElementById('qr-result-area');
     const selectedOpt = selectEl.options[selectEl.selectedIndex];
-    
+
     if (selectedOpt && selectedOpt.dataset.nama) {
         nameEl.value = selectedOpt.dataset.nama;
         generateQr(); // Otomatis buat QR
@@ -805,3 +807,264 @@ self.addEventListener('fetch', e => {
     }
     // Jika tidak ada sesi, tampilkan halaman login (default)
 })();
+
+
+// ═══════════════════════════════════════════════
+//  DASHBOARD & MENU LOGIC (NEW)
+// ═══════════════════════════════════════════════
+
+let cachedMembers = [];
+
+/** Navigasi dari Dashboard ke Menu tertentu */
+
+function openMenu(menuId) {
+    const actDate = document.getElementById('activity-date').value;
+    const actName = document.getElementById('activity-name').value.trim();
+
+    if ((menuId === 'scan' || menuId === 'manual') && (!actDate || !actName)) {
+        showNotification('Lengkapi Tanggal dan Nama Kegiatan di Home terlebih dahulu!', 'warning', 3500);
+        return;
+    }
+
+    // Update Session Info
+    const actHari = document.getElementById('activity-hari').value;
+    const actTime = document.getElementById('activity-time').value;
+    const displayDate = new Date(actDate + 'T12:00:00').toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'long', year: 'numeric'
+    });
+    
+    const sessionHtml = '<div class="flex flex-wrap gap-x-4 gap-y-1">' +
+        '<span>📅 <strong style="color:#f1f5f9;">' + actHari + ', ' + displayDate + '</strong></span>' +
+        '<span>🕐 <strong style="color:#f1f5f9;">' + actTime + ' WIB</strong></span>' +
+        '<span>🎯 <strong style="color:#f1f5f9;">' + escHtml(actName) + '</strong></span>' +
+        '<span>👤 <strong style="color:#f1f5f9;">' + currentOperator + '</strong></span>' +
+      '</div>';
+      
+    const sessInfo = document.getElementById('session-info');
+    if(sessInfo) sessInfo.innerHTML = sessionHtml;
+    
+    const manSessInfo = document.getElementById('manual-session-info');
+    if(manSessInfo) manSessInfo.innerHTML = sessionHtml;
+
+    // Hide all panels
+    document.getElementById('view-dashboard').classList.add('hidden');
+    document.getElementById('panel-scanner').classList.add('hidden');
+    document.getElementById('panel-manual').classList.add('hidden');
+    document.getElementById('panel-qrgen').classList.add('hidden');
+    
+    // Update nav items
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    const navItem = document.getElementById('nav-' + menuId);
+    if(navItem) navItem.classList.add('active');
+
+    if (menuId === 'home') {
+        document.getElementById('view-dashboard').classList.remove('hidden');
+        stopCamera();
+    } else if (menuId === 'scan') {
+        document.getElementById('panel-scanner').classList.remove('hidden');
+        switchScanMode('camera');
+    } else if (menuId === 'manual') {
+        document.getElementById('panel-manual').classList.remove('hidden');
+        renderManualList();
+        stopCamera();
+    } else if (menuId === 'qrgen') {
+        document.getElementById('panel-qrgen').classList.remove('hidden');
+        openQrGeneratorView();
+        stopCamera();
+    }
+}
+
+/** Kembali ke Dashboard */
+function backToDashboard() {
+    stopCamera();
+    document.getElementById('panel-scanner').classList.add('hidden');
+    document.getElementById('panel-manual').classList.add('hidden');
+    document.getElementById('panel-qrgen').classList.add('hidden');
+    document.getElementById('view-dashboard').classList.remove('hidden');
+    hideNotification();
+    resetGallery();
+}
+
+/** Override openQrGenerator to use the view */
+async function openQrGeneratorView() {
+    const selectEl = document.getElementById('qr-gen-id');
+    const nameEl = document.getElementById('qr-gen-name');
+    const loadingEl = document.getElementById('qr-loading');
+
+    nameEl.value = '';
+    
+    if (cachedMembers.length === 0) {
+        loadingEl.classList.remove('hidden');
+        await fetchMembers();
+        loadingEl.classList.add('hidden');
+    }
+
+    selectEl.innerHTML = '<option value="" disabled selected>-- Pilih Anggota --</option>';
+    cachedMembers.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.id + ' — ' + m.nama;
+        opt.dataset.nama = m.nama;
+        selectEl.appendChild(opt);
+    });
+}
+
+/** Fetch data members on login */
+async function fetchMembers() {
+    const listEl = document.getElementById('dash-member-list');
+    const statsEl = document.getElementById('dash-recap-stats');
+
+    try {
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ action: 'get_members' })
+        });
+        const data = await res.json();
+
+        if (data.status === 200 && data.members) {
+            cachedMembers = data.members;
+            renderDashboardRecap();
+        } else {
+            console.error('API Error:', data);
+            if(listEl) listEl.innerHTML = '<p class="text-xs text-center py-4 text-red-400">Gagal memuat: ' + (data.message || 'Error Server') + '</p>';
+            if(statsEl) statsEl.innerHTML = '<div class="badge notif-error">Gagal</div>';
+        }
+    } catch (err) {
+        console.error('Error fetching members:', err);
+        if(listEl) listEl.innerHTML = '<p class="text-xs text-center py-4 text-red-400">Gagal terhubung ke server. Periksa koneksi atau URL Apps Script.</p>';
+        if(statsEl) statsEl.innerHTML = '<div class="badge notif-error">Offline</div>';
+    }
+}
+
+/** Render Dashboard Member List */
+function renderDashboardRecap() {
+    const listEl = document.getElementById('dash-member-list');
+    const statsEl = document.getElementById('dash-recap-stats');
+    
+    if(!listEl || !statsEl) return;
+
+    statsEl.innerHTML = '<div class="badge stat-total">🎯 ' + cachedMembers.length + ' Total</div>';
+    
+    if (cachedMembers.length === 0) {
+        listEl.innerHTML = '<p class="text-xs text-center py-4" style="color:var(--text-secondary);">Tidak ada data anggota</p>';
+        return;
+    }
+
+    let html = '';
+    cachedMembers.forEach(m => {
+        html += '<div class="flex items-center gap-3 bg-white/5 p-2 rounded-xl">' +
+            '<div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">' + escHtml(getInitials(m.nama)) + '</div>' +
+            '<div class="flex-1 min-w-0">' +
+              '<div class="text-sm font-semibold text-white truncate">' + escHtml(m.nama) + '</div>' +
+              '<div class="text-[0.65rem] text-gray-400 truncate">' + escHtml(m.divisi || '') + '</div>' +
+            '</div>' +
+            '<div class="text-[0.65rem] text-indigo-400 font-medium whitespace-nowrap px-2">' + escHtml(m.id) + '</div>' +
+          '</div>';
+    });
+    listEl.innerHTML = html;
+}
+
+/** Render Manual Attendance List */
+function renderManualList() {
+    const listEl = document.getElementById('manual-member-list');
+    if (cachedMembers.length === 0) {
+        listEl.innerHTML = '<p class="text-xs text-center py-4" style="color:var(--text-secondary);">Tidak ada data anggota. Pastikan koneksi internet lancar.</p>';
+        return;
+    }
+
+    let html = '';
+    cachedMembers.forEach(m => {
+        html += '<div class="manual-member-row">' +
+            '<div class="manual-header-row">' +
+                '<input type="checkbox" class="manual-checkbox" data-id="' + m.id + '">' +
+                '<div class="flex-1 min-w-0">' +
+                    '<div class="text-sm font-semibold text-white truncate">' + escHtml(m.nama) + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="manual-status-group">' +
+                '<input type="radio" name="status-' + m.id + '" id="status-hadir-' + m.id + '" value="Hadir" class="status-radio-input">' +
+                '<label for="status-hadir-' + m.id + '" class="status-radio-label status-hadir">Hadir</label>' +
+                
+                '<input type="radio" name="status-' + m.id + '" id="status-sakit-' + m.id + '" value="Sakit" class="status-radio-input">' +
+                '<label for="status-sakit-' + m.id + '" class="status-radio-label status-sakit">Sakit</label>' +
+                
+                '<input type="radio" name="status-' + m.id + '" id="status-izin-' + m.id + '" value="Izin" class="status-radio-input">' +
+                '<label for="status-izin-' + m.id + '" class="status-radio-label status-izin">Izin</label>' +
+                
+                '<input type="radio" name="status-' + m.id + '" id="status-alpha-' + m.id + '" value="Alpha" class="status-radio-input" checked>' +
+                '<label for="status-alpha-' + m.id + '" class="status-radio-label status-alpha">Alpha</label>' +
+            '</div>' +
+        '</div>';
+    });
+    listEl.innerHTML = html;
+}
+
+function manualSelectAll() {
+    document.querySelectorAll('.manual-checkbox').forEach(cb => cb.checked = true);
+}
+
+function manualDeselectAll() {
+    document.querySelectorAll('.manual-checkbox').forEach(cb => cb.checked = false);
+}
+
+async function submitManualAttendance() {
+    const actDate = document.getElementById('activity-date').value;
+    const actTime = document.getElementById('activity-time').value;
+    const actHari = document.getElementById('activity-hari').value;
+    const actName = document.getElementById('activity-name').value.trim();
+    const btn = document.getElementById('btn-submit-manual');
+    const btnText = document.getElementById('btn-submit-manual-text');
+
+    const checkboxes = document.querySelectorAll('.manual-checkbox');
+    const selectedMembers = [];
+    
+    checkboxes.forEach(cb => {
+        if (cb.checked) {
+            const id = cb.dataset.id;
+            const statusRadio = document.querySelector('input[name="status-' + id + '"]:checked');
+            const status = statusRadio ? statusRadio.value : 'Alpha';
+            selectedMembers.push({ id: id, status: status });
+        }
+    });
+
+    if (selectedMembers.length === 0) {
+        showNotification('Pilih minimal satu anggota untuk presensi manual.', 'warning');
+        return;
+    }
+
+    btn.disabled = true;
+    btnText.textContent = 'Menyimpan...';
+
+    const payload = {
+        action: 'manual_scan',
+        members: selectedMembers, 
+        activity_date: actDate,
+        activity_time: actTime,
+        activity_hari: actHari,
+        activity_name: actName,
+        operator: currentOperator
+    };
+
+    try {
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data.status === 200) {
+            showNotification(data.message || 'Presensi manual berhasil disimpan!', 'success', 4500);
+            manualDeselectAll(); // reset selection
+        } else {
+            showNotification(data.message || 'Terjadi kesalahan.', 'error', 5000);
+        }
+    } catch (err) {
+        console.error('Fetch error:', err);
+        showNotification('Gagal terhubung ke server.', 'error');
+    } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Simpan Presensi Manual';
+    }
+}
