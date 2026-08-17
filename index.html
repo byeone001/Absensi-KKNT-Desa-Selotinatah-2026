@@ -20,6 +20,12 @@
 
     <!-- html5-qrcode Library -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <!-- PWA Setup -->
+    <meta name="theme-color" content="#4338ca">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Presensi%20KKN%20Selotinatah%22%2C%22short_name%22%3A%22Presensi%20KKN%22%2C%22display%22%3A%22standalone%22%2C%22theme_color%22%3A%22%234338ca%22%2C%22background_color%22%3A%22%230f0f1a%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzQzMzhjYSIvPjx0ZXh0IHg9IjUwIiB5PSI2NCIgZm9udC1zaXplPSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiPvCdkII8L3RleHQ%2BPC9zdmc%2B%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
 </head>
 
 <body class="flex items-center justify-center min-h-screen p-4">
@@ -202,6 +208,12 @@
                 <div class="spinner"></div>
                 <span class="text-sm font-medium" style="color:#94a3b8;">Memproses presensi ke server...</span>
             </div>
+
+            <!-- Akhiri Presensi Button -->
+            <button class="btn-primary" style="background: linear-gradient(135deg, #ef4444, #b91c1c); margin-top: 1rem;" onclick="doEndSession()">
+                <span>🛑</span>
+                <span>Akhiri Presensi & Rekap</span>
+            </button>
         </div>
 
         <p class="text-center text-xs pb-2" style="color:rgba(255,255,255,0.15);">
@@ -213,6 +225,47 @@
 
 <!-- Hidden element untuk html5-qrcode gallery scan -->
 <div id="gallery-hidden-reader" style="display:none;width:1px;height:1px;"></div>
+
+<!-- RECAP MODAL OVERLAY -->
+<div id="recap-modal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all">
+    <div class="glass-card w-full max-w-md max-h-[85vh] flex flex-col bg-[#161625]">
+        
+        <!-- Modal Header -->
+        <div class="p-5 border-b border-white/10 shrink-0">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <span>📊</span> Rekap Presensi
+                    </h3>
+                    <p id="modal-activity-name" class="text-sm font-semibold text-[#8b5cf6] mt-1">Nama Kegiatan</p>
+                    <p id="modal-activity-date" class="text-xs text-[#94a3b8]">Senin, 17 Agustus 2026</p>
+                </div>
+                <button onclick="closeRecapModal()" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
+                    ✕
+                </button>
+            </div>
+            
+            <div id="modal-stats" class="flex flex-wrap gap-2 mt-4">
+                <!-- badges injected via js -->
+            </div>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div class="p-5 overflow-y-auto custom-scrollbar flex-1 space-y-4" id="modal-body-content">
+            <!-- content injected via js -->
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="p-4 border-t border-white/10 shrink-0 grid grid-cols-2 gap-3 bg-white/5 rounded-b-[1.5rem]">
+            <button class="btn-secondary w-full flex justify-center items-center gap-2" onclick="closeRecapModal(true)">
+                <span>📸</span> Lanjut Scan
+            </button>
+            <button id="btn-copy-recap" class="btn-primary w-full flex justify-center items-center gap-2 text-sm" onclick="copyRekapText()">
+                <span>📋</span> Salin Rekap
+            </button>
+        </div>
+    </div>
+</div>
 
 <!-- Custom JavaScript -->
 <script src="script.js"></script>

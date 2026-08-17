@@ -6,7 +6,7 @@
 // ═══════════════════════════════════════════════
 //  ⚙ CONFIGURATION — GANTI DENGAN URL GAS KAMU
 // ═══════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNK0V81hyy-xSYx9veDRCAxWjZvU_VcbXn4aITqe9Hc69paiX5y4v5GTpQvONb1m-acQ/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz6QGYcJ7YJGdoAco-9XYC9jP0aU7loee8xRuB0Rj76a_WlqhotPE7viTX5CfeeXswCuA/exec';
 
 // ═══════════════════════════════════════════════
 //  STATE
@@ -76,6 +76,12 @@ function escHtml(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+}
+
+/** Inisial dari nama (maks 2 huruf) */
+function getInitials(nama) {
+    if (!nama) return '?';
+    return nama.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 }
 
 // ═══════════════════════════════════════════════
@@ -389,6 +395,223 @@ async function onQrSuccess(decodedText) {
 }
 
 // ═══════════════════════════════════════════════
+//  AKHIRI PRESENSI → REKAP MODAL
+// ═══════════════════════════════════════════════
+
+/** Dipanggil saat klik tombol "Akhiri Presensi" */
+async function doEndSession() {
+    const actName = document.getElementById('activity-name').value.trim();
+    const actDate = document.getElementById('activity-date').value;
+    const actHari = document.getElementById('activity-hari').value;
+
+    if (!actName || !actDate) {
+        showNotification('Data kegiatan tidak lengkap.', 'error');
+        return;
+    }
+
+    // Hentikan kamera
+    await stopCamera();
+
+    // Tampilkan modal dalam state loading
+    openRecapModal(actName, actDate, actHari, null);
+
+    try {
+        const res = await fetch(SCRIPT_URL, {
+            method : 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body   : JSON.stringify({
+                action        : 'get_recap',
+                activity_date : actDate,
+                activity_name : actName
+            })
+        });
+        const data = await res.json();
+
+        if (data.status === 200) {
+            renderRecapModal(data, actName, actDate, actHari);
+        } else {
+            document.getElementById('modal-body-content').innerHTML = `
+              <div class="text-center py-8">
+                <div class="text-4xl mb-3">⚠️</div>
+                <p class="text-sm font-semibold text-red-400">${data.message || 'Gagal memuat rekap.'}</p>
+              </div>`;
+        }
+    } catch (err) {
+        console.error('Recap fetch error:', err);
+        document.getElementById('modal-body-content').innerHTML = `
+          <div class="text-center py-8">
+            <div class="text-4xl mb-3">📡</div>
+            <p class="text-sm font-semibold" style="color:#fca5a5;">Gagal terhubung ke server.</p>
+          </div>`;
+    }
+}
+
+/** Buka overlay modal */
+function openRecapModal(actName, actDate, actHari, data) {
+    const displayDate = new Date(actDate + 'T12:00:00').toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    const overlay = document.getElementById('recap-modal');
+    overlay.classList.remove('hidden');
+
+    // Set header
+    document.getElementById('modal-activity-name').textContent = actName;
+    document.getElementById('modal-activity-date').textContent = `${actHari}, ${displayDate}`;
+
+    // Stats placeholder
+    document.getElementById('modal-stats').innerHTML = `
+      <div class="badge stat-total">
+        <div class="spinner" style="width:0.75rem;height:0.75rem;border-top-color:#a5b4fc;"></div>
+        Memuat...
+      </div>`;
+
+    // Body loading
+    document.getElementById('modal-body-content').innerHTML = `
+      <div class="flex flex-col items-center justify-center py-8 gap-3">
+        <div class="spinner" style="border-top-color:#6366f1;"></div>
+        <p class="text-sm font-medium" style="color:#94a3b8;">Mengambil data dari server...</p>
+      </div>`;
+
+    document.body.style.overflow = 'hidden';
+}
+
+/** Render data rekap ke dalam modal */
+function renderRecapModal(data, actName, actDate, actHari) {
+    const hadir = data.hadir || [];
+    const belum = data.belum || [];
+    const total = data.total || (hadir.length + belum.length);
+
+    // Stats
+    document.getElementById('modal-stats').innerHTML = `
+      <div class="badge" style="background:rgba(255,255,255,0.1); color:white; border-color:transparent;">🎯 ${total} Anggota</div>
+      <div class="badge" style="background:rgba(16,185,129,0.15); color:#6ee7b7; border-color:transparent;">✅ ${hadir.length} Hadir</div>
+      ${belum.length > 0 ? `<div class="badge" style="background:rgba(239,68,68,0.15); color:#fca5a5; border-color:transparent;">⏳ ${belum.length} Belum</div>` : ''}`;
+
+    // Build member list HTML
+    let html = '';
+
+    if (hadir.length > 0) {
+        html += `<div class="text-sm font-semibold text-white mb-2 pb-1 border-b border-white/10 flex items-center gap-2">
+          <span>✅</span> Hadir (${hadir.length})
+        </div>`;
+        html += `<div class="space-y-2 mb-4">`;
+        hadir.forEach(m => {
+            html += `
+              <div class="flex items-center gap-3 bg-white/5 p-2 rounded-xl">
+                <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">${escHtml(getInitials(m.nama))}</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-semibold text-white truncate member-name">${escHtml(m.nama)}</div>
+                  <div class="text-[0.65rem] text-gray-400 truncate">${escHtml(m.divisi || '')}</div>
+                </div>
+                <div class="text-xs text-emerald-400 font-medium whitespace-nowrap px-2">${escHtml(m.waktu || '')}</div>
+              </div>`;
+        });
+        html += `</div>`;
+    }
+
+    if (belum.length > 0) {
+        html += `<div class="text-sm font-semibold text-white mb-2 pb-1 border-b border-white/10 flex items-center gap-2">
+          <span>⏳</span> Belum Presensi (${belum.length})
+        </div>`;
+        html += `<div class="space-y-2">`;
+        belum.forEach(m => {
+            html += `
+              <div class="flex items-center gap-3 bg-white/5 p-2 rounded-xl opacity-60">
+                <div class="w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-xs font-bold shrink-0">${escHtml(getInitials(m.nama))}</div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-semibold text-white truncate member-name">${escHtml(m.nama)}</div>
+                  <div class="text-[0.65rem] text-gray-400 truncate">${escHtml(m.divisi || '')}</div>
+                </div>
+                <div class="text-[0.65rem] px-2 py-1 bg-red-500/20 text-red-300 rounded-lg whitespace-nowrap">Absen</div>
+              </div>`;
+        });
+        html += `</div>`;
+    }
+
+    if (hadir.length === 0 && belum.length === 0) {
+        html = `<div class="text-center py-8">
+          <div class="text-4xl mb-3">📭</div>
+          <p class="text-sm" style="color:#94a3b8;">Belum ada data anggota.</p>
+        </div>`;
+    }
+
+    document.getElementById('modal-body-content').innerHTML = html;
+}
+
+/** Tutup modal dan lanjut scan */
+function closeRecapModal(lanjut = false) {
+    const overlay = document.getElementById('recap-modal');
+    overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+
+    if (lanjut) {
+        // Lanjut scan ulang
+        if (currentScanMode === 'camera') startCamera();
+    }
+}
+
+/** Salin teks rekap ke clipboard */
+async function copyRekapText() {
+    const actName = document.getElementById('modal-activity-name').textContent;
+    const actDate = document.getElementById('modal-activity-date').textContent;
+
+    // Ambil nama dari DOM
+    const hadirRows  = [...document.querySelectorAll('#modal-body-content .bg-emerald-500\\/20')]
+        .map(el => el.parentElement.querySelector('.member-name').textContent.trim());
+        
+    const belumRows  = [...document.querySelectorAll('#modal-body-content .bg-red-500\\/20.w-8')]
+        .map(el => el.parentElement.querySelector('.member-name').textContent.trim());
+
+    let teks = `📋 REKAP PRESENSI KKN-T SELOTINATAH\n`;
+    teks    += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+    teks    += `🎯 Kegiatan : ${actName}\n`;
+    teks    += `📅 Tanggal  : ${actDate}\n`;
+    teks    += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    teks    += `✅ HADIR (${hadirRows.length})\n`;
+    hadirRows.forEach((n, i) => { teks += `${i + 1}. ${n}\n`; });
+
+    if (belumRows.length > 0) {
+        teks += `\n⏳ BELUM PRESENSI (${belumRows.length})\n`;
+        belumRows.forEach((n, i) => { teks += `${i + 1}. ${n}\n`; });
+    }
+
+    teks += `\nTotal: ${hadirRows.length + belumRows.length} anggota`;
+
+    try {
+        await navigator.clipboard.writeText(teks);
+        showCopyFeedback('✅ Tersalin!');
+    } catch (e) {
+        // Fallback untuk browser yang tidak support clipboard API
+        const ta = document.createElement('textarea');
+        ta.value = teks;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showCopyFeedback('✅ Tersalin!');
+    }
+}
+
+function showCopyFeedback(msg) {
+    const btn = document.getElementById('btn-copy-recap');
+    const orig = btn.innerHTML;
+    btn.innerHTML = `<span>${msg}</span>`;
+    btn.disabled = true;
+    setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.disabled = false;
+    }, 2500);
+}
+
+// Tutup modal dengan klik overlay (di luar sheet)
+document.getElementById('recap-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeRecapModal(true);
+});
+
+// ═══════════════════════════════════════════════
 //  KEYBOARD SUPPORT
 // ═══════════════════════════════════════════════
 document.getElementById('login-username').addEventListener('keydown', e => {
@@ -402,6 +625,57 @@ document.getElementById('login-password').addEventListener('keydown', e => {
 document.getElementById('activity-name').addEventListener('keydown', e => {
     if (e.key === 'Enter') goToScanner();
 });
+
+// ═══════════════════════════════════════════════
+//  PWA — Service Worker (Blob URL approach)
+// ═══════════════════════════════════════════════
+(function registerSW() {
+    if (!('serviceWorker' in navigator)) return;
+
+    const swCode = `
+const CACHE = 'kknt-v1';
+const ASSETS = ['/'];
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(ASSETS).catch(() => {}))
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    fetch(e.request)
+      .then(res => {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return res;
+      })
+      .catch(() => caches.match(e.request))
+  );
+});
+    `.trim();
+
+    try {
+        const blob = new Blob([swCode], { type: 'application/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(swUrl)
+            .then(() => console.log('[PWA] Service Worker registered'))
+            .catch(err => console.warn('[PWA] SW registration failed:', err));
+    } catch (e) {
+        console.warn('[PWA] Blob SW not supported:', e);
+    }
+})();
 
 // ═══════════════════════════════════════════════
 //  INISIALISASI — Cek sesi tersimpan
