@@ -19,6 +19,7 @@ let isProcessing = false;
 let currentScanMode = 'camera';
 let notifTimeout = null;
 let qrInstance = null;
+let cachedMembers = []; // Daftar anggota yang di-cache setelah login
 
 // Kredensial operator (hardcoded)
 const VALID_USERS = {
@@ -729,9 +730,6 @@ function downloadQr() {
     link.click();
 }
 
-document.getElementById('qr-generator-modal').addEventListener('click', function (e) {
-    if (e.target === this) closeQrGenerator();
-});
 
 // ═══════════════════════════════════════════════
 //  KEYBOARD SUPPORT
@@ -816,7 +814,6 @@ self.addEventListener('fetch', e => {
 //  DASHBOARD & MENU LOGIC (NEW)
 // ═══════════════════════════════════════════════
 
-let cachedMembers = [];
 
 /** Navigasi dari Dashboard ke Menu tertentu */
 
