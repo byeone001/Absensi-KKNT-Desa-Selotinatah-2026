@@ -370,6 +370,7 @@ async function onQrSuccess(decodedText) {
         const res = await fetch(SCRIPT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
+            redirect: 'follow',
             body: JSON.stringify(payload)
         });
         const data = await res.json();
@@ -422,6 +423,7 @@ async function doEndSession() {
         const res = await fetch(SCRIPT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
+            redirect: 'follow',
             body: JSON.stringify({
                 action: 'get_recap',
                 activity_date: actDate,
@@ -639,6 +641,7 @@ async function openQrGenerator() {
             const res = await fetch(SCRIPT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
+                redirect: 'follow',
                 body: JSON.stringify({ action: 'get_members' })
             });
             const data = await res.json();
@@ -752,7 +755,7 @@ document.getElementById('activity-name').addEventListener('keydown', e => {
     if (!('serviceWorker' in navigator)) return;
 
     const swCode = `
-const CACHE = 'kknt-v1';
+const CACHE = 'kknt-v3';
 const ASSETS = ['/'];
 
 self.addEventListener('install', e => {
@@ -918,6 +921,7 @@ async function fetchMembers() {
         const res = await fetch(SCRIPT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
+            redirect: 'follow',
             body: JSON.stringify({ action: 'get_members' })
         });
         const data = await res.json();
@@ -1050,6 +1054,7 @@ async function submitManualAttendance() {
         const res = await fetch(SCRIPT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
+            redirect: 'follow',
             body: JSON.stringify(payload)
         });
         const data = await res.json();
