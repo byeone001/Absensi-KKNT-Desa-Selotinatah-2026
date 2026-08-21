@@ -1399,7 +1399,7 @@ async function submitManualAttendance() {
         if (cb.checked) {
             const id = cb.dataset.id;
             const statusRadio = document.querySelector('input[name="status-' + id + '"]:checked');
-            const status = statusRadio ? statusRadio.value : 'Alpha';
+            const status = statusRadio ? statusRadio.value : 'Hadir';
             selectedMembers.push({ id: id, status: status });
         }
     });
