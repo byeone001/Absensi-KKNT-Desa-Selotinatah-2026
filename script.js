@@ -504,7 +504,14 @@ function renderRecapModal(data, actName, actDate, actHari) {
         html += `<div class="space-y-2 mb-4">`;
         hadir.forEach(m => {
             html += `
-              <div class="flex items-center gap-3 bg-white/5 p-2 rounded-xl">
+              <div class="flex items-center gap-3 bg-white/5 p-2 rounded-xl hover:bg-white/10 cursor-pointer transition-colors" 
+                   onclick="openEditModal({
+                     nama: '${escHtml(m.nama).replace(/'/g, "\\'")}',
+                     member_code: '${m.id || ''}',
+                     activity_date: '${actDate}',
+                     activity_name: '${escHtml(actName).replace(/'/g, "\\'")}',
+                     waktu: '${m.waktu || ''}'
+                   })">
                 <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">${escHtml(getInitials(m.nama))}</div>
                 <div class="flex-1 min-w-0">
                   <div class="text-sm font-semibold text-white truncate member-name">${escHtml(m.nama)}</div>
@@ -747,6 +754,368 @@ document.getElementById('activity-name').addEventListener('keydown', e => {
 });
 
 // ═══════════════════════════════════════════════
+//  SESSION TIMEOUT (15 MENIT INAKTIF)
+// ═══════════════════════════════════════════════
+const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 menit
+let lastActivityTime = Date.now();
+
+function updateActivityTime() {
+    lastActivityTime = Date.now();
+}
+
+// Track inactivity
+document.addEventListener('click', updateActivityTime);
+document.addEventListener('keydown', updateActivityTime);
+document.addEventListener('scroll', updateActivityTime);
+
+setInterval(() => {
+    if (currentOperator && (Date.now() - lastActivityTime) > SESSION_TIMEOUT) {
+        showNotification('⏰ Sesi login Anda sudah hangus! Silakan login kembali.', 'warning', 5000);
+        setTimeout(() => doLogout(), 2000);
+    }
+}, 60000); // Check setiap 1 menit
+
+// ═══════════════════════════════════════════════
+//  HISTORY / RIWAYAT PRESENSI
+// ═══════════════════════════════════════════════
+
+async function loadHistoryByDate() {
+    const dateInput = document.getElementById('history-date-filter').value;
+    if (!dateInput) {
+        showNotification('Pilih tanggal terlebih dahulu', 'warning');
+        return;
+    }
+
+    const contentEl = document.getElementById('history-content');
+    contentEl.innerHTML = '<div class="text-center py-8"><div class="spinner"></div></div>';
+
+    try {
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            redirect: 'follow',
+            body: JSON.stringify({
+                action: 'get_history',
+                history_date: dateInput
+            })
+        });
+        const data = await res.json();
+
+        if (data.status === 200 && data.activities) {
+            renderHistoryList(data.activities, dateInput);
+        } else {
+            contentEl.innerHTML = '<div class="text-center py-8"><div class="text-3xl mb-2">📭</div><p class="text-sm" style="color:#94a3b8;">Tidak ada data presensi</p></div>';
+        }
+    } catch (err) {
+        console.error('History fetch error:', err);
+        contentEl.innerHTML = '<div class="text-center py-8"><div class="text-3xl mb-2">❌</div><p class="text-sm" style="color:#fca5a5;">Gagal memuat data</p></div>';
+    }
+}
+
+function renderHistoryList(activities, dateStr) {
+    const contentEl = document.getElementById('history-content');
+    if (activities.length === 0) {
+        contentEl.innerHTML = '<div class="text-center py-8"><div class="text-3xl mb-2">📭</div><p class="text-sm" style="color:#94a3b8;">Tidak ada presensi pada tanggal ini</p></div>';
+        return;
+    }
+
+    let html = '';
+    const dateObj = new Date(dateStr + 'T12:00:00');
+    const displayDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    activities.forEach(activity => {
+        html += `<div class="glass-card-light p-4 space-y-3">
+            <div>
+                <p class="text-sm font-semibold text-white">${escHtml(activity.nama_kegiatan)}</p>
+                <p class="text-xs" style="color:#94a3b8;">📅 ${displayDate} · 🕐 ${activity.waktu || '—'}</p>
+            </div>
+            <div class="border-t border-white/10 pt-2">
+                <div class="flex justify-between text-xs mb-2">
+                    <span style="color:#94a3b8;">Presensi:</span>
+                    <span style="color:#6ee7b7;"><strong>${activity.hadir || 0}</strong> Hadir</span>
+                </div>
+                <div id="history-members-${activity.activity_id}" class="text-xs space-y-1 max-h-32 overflow-y-auto custom-scrollbar">`;
+        
+        if (activity.members && activity.members.length > 0) {
+            activity.members.forEach(m => {
+                const status = m.status === 'Hadir' ? '✅' : '❌';
+                html += `<div class="flex justify-between items-center">
+                    <span>${escHtml(m.nama)}</span>
+                    <span class="text-right">${status} ${m.waktu || '—'}</span>
+                </div>`;
+            });
+        }
+        html += `</div></div></div>`;
+    });
+
+    contentEl.innerHTML = html;
+}
+
+function exportHistoryCSV() {
+    const dateInput = document.getElementById('history-date-filter').value;
+    if (!dateInput) {
+        showNotification('Pilih tanggal terlebih dahulu', 'warning');
+        return;
+    }
+
+    const contentEl = document.getElementById('history-content');
+    const activityElements = contentEl.querySelectorAll('.glass-card-light');
+    
+    if (activityElements.length === 0) {
+        showNotification('Tidak ada data untuk di-ekspor', 'warning');
+        return;
+    }
+
+    let csv = 'Tanggal,Kegiatan,Nama Anggota,Status,Waktu Presensi\n';
+    const dateObj = new Date(dateInput + 'T12:00:00');
+    const displayDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    activityElements.forEach(el => {
+        const kegiatan = el.querySelector('.font-semibold').textContent.trim();
+        const membersDiv = el.querySelector('[id^="history-members-"]');
+        
+        if (membersDiv) {
+            const memberLines = membersDiv.querySelectorAll('div');
+            memberLines.forEach(line => {
+                const text = line.textContent.trim();
+                if (text) {
+                    const parts = text.split('\t').map(p => p.trim());
+                    const nama = parts[0] || '';
+                    const status = text.includes('✅') ? 'Hadir' : 'Absen';
+                    const waktu = parts[1] || '—';
+                    csv += `"${displayDate}","${kegiatan}","${nama}","${status}","${waktu}"\n`;
+                }
+            });
+        }
+    });
+
+    downloadCSV(csv, `Riwayat_Presensi_${dateInput}.csv`);
+    showNotification('✅ File CSV sudah diunduh!', 'success', 3000);
+}
+
+// ═══════════════════════════════════════════════
+//  STATISTICS / DASHBOARD
+// ═══════════════════════════════════════════════
+
+async function loadStatistics() {
+    const statsOverview = document.getElementById('stats-overview');
+    const memberList = document.getElementById('stats-member-list');
+
+    statsOverview.innerHTML = '<div class="spinner" style="grid-column: 1/3; justify-self: center;"></div>';
+    memberList.innerHTML = '<p class="text-center py-4" style="color:#94a3b8;">Memuat data...</p>';
+
+    try {
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            redirect: 'follow',
+            body: JSON.stringify({ action: 'get_statistics' })
+        });
+        const data = await res.json();
+
+        if (data.status === 200) {
+            renderStatistics(data);
+        } else {
+            memberList.innerHTML = '<p class="text-sm text-red-400">Gagal memuat statistik</p>';
+        }
+    } catch (err) {
+        console.error('Stats fetch error:', err);
+        memberList.innerHTML = '<p class="text-sm text-red-400">Koneksi error</p>';
+    }
+}
+
+function renderStatistics(data) {
+    const statsOverview = document.getElementById('stats-overview');
+    const memberList = document.getElementById('stats-member-list');
+
+    const totalActivities = data.total_activities || 0;
+    const avgAttendance = data.avg_attendance || 0;
+
+    statsOverview.innerHTML = `
+        <div class="glass-card-light p-4 text-center">
+            <div class="text-2xl font-bold text-white mb-1">${totalActivities}</div>
+            <p class="text-xs" style="color:#94a3b8;">Total Kegiatan</p>
+        </div>
+        <div class="glass-card-light p-4 text-center">
+            <div class="text-2xl font-bold text-white mb-1">${Math.round(avgAttendance)}%</div>
+            <p class="text-xs" style="color:#94a3b8;">Rata-rata Hadir</p>
+        </div>`;
+
+    if (data.members && data.members.length > 0) {
+        let html = '';
+        data.members.forEach(m => {
+            const attendancePercent = Math.round((m.hadir / (m.hadir + m.absen)) * 100) || 0;
+            const barColor = attendancePercent >= 80 ? '#6ee7b7' : attendancePercent >= 60 ? '#fcd34d' : '#fca5a5';
+            
+            html += `<div class="glass-card-light p-3">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex-1">
+                        <p class="text-xs font-semibold text-white">${escHtml(m.nama)}</p>
+                        <p class="text-[0.65rem]" style="color:#94a3b8;">${m.hadir} hadir · ${m.absen} absen</p>
+                    </div>
+                    <span class="text-xs font-bold px-2 py-1 rounded" style="background:rgba(255,255,255,0.1); color:#f1f5f9;">${attendancePercent}%</span>
+                </div>
+                <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div class="h-full" style="width:${attendancePercent}%; background-color:${barColor};"></div>
+                </div>
+            </div>`;
+        });
+        memberList.innerHTML = html;
+    } else {
+        memberList.innerHTML = '<p class="text-center py-4" style="color:#94a3b8;">Belum ada data statistik</p>';
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  EXPORT CSV
+// ═══════════════════════════════════════════════
+
+function exportRecapCSV() {
+    const actName = document.getElementById('modal-activity-name').textContent;
+    const actDate = document.getElementById('modal-activity-date').textContent;
+
+    const hadirRows = [...document.querySelectorAll('#modal-body-content .bg-emerald-500\\/20')]
+        .map(el => ({
+            nama: el.parentElement.querySelector('.member-name').textContent.trim(),
+            waktu: el.parentElement.querySelector('[style*="text-emerald"]')?.textContent.trim() || '—'
+        }));
+
+    const belumRows = [...document.querySelectorAll('#modal-body-content .bg-red-500\\/20.w-8')]
+        .map(el => ({
+            nama: el.parentElement.querySelector('.member-name').textContent.trim(),
+            waktu: '—'
+        }));
+
+    let csv = 'Kegiatan,Tanggal,Nama Anggota,Status,Waktu Presensi\n';
+    
+    hadirRows.forEach(m => {
+        csv += `"${actName}","${actDate}","${m.nama}","Hadir","${m.waktu}"\n`;
+    });
+
+    belumRows.forEach(m => {
+        csv += `"${actName}","${actDate}","${m.nama}","Absen","—"\n`;
+    });
+
+    downloadCSV(csv, `Rekap_${actName.replace(/\\s+/g, '_')}.csv`);
+    showNotification('✅ File CSV sudah diunduh!', 'success', 3000);
+}
+
+function downloadCSV(csvContent, filename) {
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// ═══════════════════════════════════════════════
+//  EDIT / DELETE PRESENSI
+// ═══════════════════════════════════════════════
+
+let currentEditingPresensi = null;
+
+function openEditModal(memberData) {
+    currentEditingPresensi = memberData;
+    document.getElementById('edit-modal-info').textContent = `${escHtml(memberData.nama)} - ${memberData.activity_name}`;
+    document.getElementById('edit-presensi-time').value = memberData.waktu || '';
+    document.getElementById('edit-presensi-modal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+    document.getElementById('edit-presensi-modal').classList.add('hidden');
+    currentEditingPresensi = null;
+}
+
+async function saveEditPresensi() {
+    if (!currentEditingPresensi) return;
+
+    const newTime = document.getElementById('edit-presensi-time').value;
+    if (!newTime) {
+        showNotification('Masukkan waktu presensi', 'warning');
+        return;
+    }
+
+    const btn = document.querySelector('#edit-presensi-modal .btn-primary');
+    const origText = btn.innerHTML;
+    btn.innerHTML = '<span>💾 Menyimpan...</span>';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            redirect: 'follow',
+            body: JSON.stringify({
+                action: 'edit_presensi',
+                member_code: currentEditingPresensi.member_code,
+                activity_date: currentEditingPresensi.activity_date,
+                activity_name: currentEditingPresensi.activity_name,
+                new_time: newTime
+            })
+        });
+        const data = await res.json();
+
+        if (data.status === 200) {
+            showNotification('✅ Presensi berhasil diperbarui!', 'success', 3000);
+            closeEditModal();
+            doEndSession(); // Refresh rekap
+        } else {
+            showNotification(data.message || 'Gagal update presensi', 'error');
+        }
+    } catch (err) {
+        console.error('Edit error:', err);
+        showNotification('Gagal terhubung ke server', 'error');
+    } finally {
+        btn.innerHTML = origText;
+        btn.disabled = false;
+    }
+}
+
+async function deletePresensi() {
+    if (!currentEditingPresensi) return;
+    if (!confirm('Yakin hapus presensi ini?')) return;
+
+    const btn = document.querySelector('#edit-presensi-modal .btn-danger');
+    const origText = btn.innerHTML;
+    btn.innerHTML = '<span>🗑️ Menghapus...</span>';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            redirect: 'follow',
+            body: JSON.stringify({
+                action: 'delete_presensi',
+                member_code: currentEditingPresensi.member_code,
+                activity_date: currentEditingPresensi.activity_date,
+                activity_name: currentEditingPresensi.activity_name
+            })
+        });
+        const data = await res.json();
+
+        if (data.status === 200) {
+            showNotification('✅ Presensi berhasil dihapus!', 'success', 3000);
+            closeEditModal();
+            doEndSession(); // Refresh rekap
+        } else {
+            showNotification(data.message || 'Gagal hapus presensi', 'error');
+        }
+    } catch (err) {
+        console.error('Delete error:', err);
+        showNotification('Gagal terhubung ke server', 'error');
+    } finally {
+        btn.innerHTML = origText;
+        btn.disabled = false;
+    }
+}
+
+// ═══════════════════════════════════════════════
 //  PWA — Service Worker (Blob URL approach)
 // ═══════════════════════════════════════════════
 (function registerSW() {
@@ -850,7 +1219,8 @@ function openMenu(menuId) {
     document.getElementById('view-dashboard').classList.add('hidden');
     document.getElementById('panel-scanner').classList.add('hidden');
     document.getElementById('panel-manual').classList.add('hidden');
-    document.getElementById('panel-qrgen').classList.add('hidden');
+    document.getElementById('panel-history').classList.add('hidden');
+    document.getElementById('panel-statistics').classList.add('hidden');
 
     // Update nav items
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -867,10 +1237,15 @@ function openMenu(menuId) {
         document.getElementById('panel-manual').classList.remove('hidden');
         renderManualList();
         stopCamera();
-    } else if (menuId === 'qrgen') {
-        document.getElementById('panel-qrgen').classList.remove('hidden');
-        openQrGeneratorView();
+    } else if (menuId === 'history') {
+        document.getElementById('panel-history').classList.remove('hidden');
         stopCamera();
+        // Set default date to today
+        document.getElementById('history-date-filter').value = getWIBDateStr();
+    } else if (menuId === 'stats') {
+        document.getElementById('panel-statistics').classList.remove('hidden');
+        stopCamera();
+        loadStatistics();
     }
 }
 
