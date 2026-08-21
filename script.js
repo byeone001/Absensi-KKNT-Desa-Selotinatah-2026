@@ -1359,7 +1359,7 @@ function renderManualList() {
             '</div>' +
             '</div>' +
             '<div class="manual-status-group">' +
-            '<input type="radio" name="status-' + m.id + '" id="status-hadir-' + m.id + '" value="Hadir" class="status-radio-input">' +
+            '<input type="radio" name="status-' + m.id + '" id="status-hadir-' + m.id + '" value="Hadir" class="status-radio-input" checked>' +
             '<label for="status-hadir-' + m.id + '" class="status-radio-label status-hadir">Hadir</label>' +
 
             '<input type="radio" name="status-' + m.id + '" id="status-sakit-' + m.id + '" value="Sakit" class="status-radio-input">' +
@@ -1368,7 +1368,7 @@ function renderManualList() {
             '<input type="radio" name="status-' + m.id + '" id="status-izin-' + m.id + '" value="Izin" class="status-radio-input">' +
             '<label for="status-izin-' + m.id + '" class="status-radio-label status-izin">Izin</label>' +
 
-            '<input type="radio" name="status-' + m.id + '" id="status-alpha-' + m.id + '" value="Alpha" class="status-radio-input" checked>' +
+            '<input type="radio" name="status-' + m.id + '" id="status-alpha-' + m.id + '" value="Alpha" class="status-radio-input">' +
             '<label for="status-alpha-' + m.id + '" class="status-radio-label status-alpha">Alpha</label>' +
             '</div>' +
             '</div>';
@@ -1399,7 +1399,7 @@ async function submitManualAttendance() {
         if (cb.checked) {
             const id = cb.dataset.id;
             const statusRadio = document.querySelector('input[name="status-' + id + '"]:checked');
-            const status = statusRadio ? statusRadio.value : 'Hadir';
+            const status = statusRadio ? statusRadio.value : 'Alpha';
             selectedMembers.push({ id: id, status: status });
         }
     });
