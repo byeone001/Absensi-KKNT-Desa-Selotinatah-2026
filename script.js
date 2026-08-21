@@ -7,7 +7,7 @@
 //  ⚙ CONFIGURATION — GANTI DENGAN URL GAS KAMU
 // ═══════════════════════════════════════════════
 //const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2dJAUUhQj4YZOsB0qi2L_GDNw6oUyFGL0Y9Ty8-7jX8zlsa7Fba8lV5OrCB8X8uqB/exec';
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2dJAUUhQj4YZOsB0qi2L_GDNw6oUyFGL0Y9Ty8-7jX8zlsa7Fba8lV5OrCB8X8uqB/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxO6F19DqjMiQK-9fz8jJAERbChqgU8loSvsYLcFIlC4mmvGCngm2tdVrEWdRR6DbsEpg/exec';
 
 // ═══════════════════════════════════════════════
 //  STATE
